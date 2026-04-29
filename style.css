@@ -132,13 +132,13 @@ body {
 }
 
 #slots .slot.correct {
-    background-color: hsl(120, 100%, 50%);
+    background-color: hsl(115, 29%, 53%);
 }
 
 #slots .slot.present {
-    background-color: hsl(60, 100%, 50%);
+    background-color: hsl(49, 51%, 57%);
 }
 
 #slots .slot.absent {
-    background-color: hsl(0, 0%, 75%);
+    background-color: hsl(200, 2%, 48%);
 }
