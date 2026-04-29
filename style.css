@@ -1,0 +1,144 @@
+@font-face {
+    font-family: "Windows98Regular";
+    src: url("./fonts/windows98regular.ttf") format("truetype");
+    
+}
+
+@font-face {
+    font-family: "Windows98Bold";
+    src: url("./fonts/windows98bold.ttf") format("truetype");
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Windows98Regular", monospace;
+    font-size: 15px;
+}
+
+body {
+    background-color: hsl(0, 0%, 75%);
+    overflow: hidden;
+}
+
+#bar {
+    display: flex;
+    background: linear-gradient(90deg, hsl(240, 100%, 25%), hsl(204, 86%, 44%));
+    font-family: "Windows98Bold", monospace;
+    color: white;
+    margin: 3.5px 2.5px 0px;
+    font-size: 15px;
+}
+
+#title {
+    padding: 7.5px 0px 2.5px 5px;
+}
+
+#tr1 {
+    margin-left: auto;
+}
+
+#tr1, #tr2 {
+    background-color: hsl(0, 0%, 75%);
+    box-shadow:
+        inset -1px -1px #0a0a0a,
+        inset 1px 1px #fff,
+        inset -2px -2px #808080,
+        inset 2px 2px #dfdfdf;
+    border: none;
+    margin-top: 2.5px;
+    margin-right: 2.5px;
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+#tr1:active, #tr2:active {
+    box-shadow:
+        inset -1px -1px #fff,
+        inset 1px 1px #0a0a0a,
+        inset -2px -2px #dfdfdf,
+        inset 2px 2px #808080;
+
+    transform: translate(1px, 1px);
+}
+
+#slots {
+    margin-top: 10px;
+}
+
+#slots .row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#slots .slot {
+    background-color: hsl(0, 0%, 100%);
+    box-shadow:
+        inset -1px -1px #fff,
+        inset 1px 1px #0a0a0a,
+        inset -2px -2px #dfdfdf,
+        inset 2px 2px #808080;
+    margin: 1px;
+    padding: 1px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#status {
+    margin-top: 10px;
+    text-align: center;
+}
+
+#keyboard {
+    margin-top: 10px;
+}
+
+#keyboard .row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#keyboard .key {
+    background-color: hsl(0, 0%, 75%);
+    box-shadow:
+        inset -1px -1px #0a0a0a,
+        inset 1px 1px #fff,
+        inset -2px -2px #808080,
+        inset 2px 2px #dfdfdf;
+    border: none;
+    margin: 1px;
+    width: 50px;
+    height: 50px;
+}
+
+#keyboard .key:active {
+    box-shadow:
+        inset -1px -1px #fff,
+        inset 1px 1px #0a0a0a,
+        inset -2px -2px #dfdfdf,
+        inset 2px 2px #808080;
+
+    transform: translate(1px, 1px);
+}
+
+#enter-key, #delete-key {
+    min-width: 5rem;
+}
+
+#slots .slot.correct {
+    background-color: hsl(120, 100%, 50%);
+}
+
+#slots .slot.present {
+    background-color: hsl(60, 100%, 50%);
+}
+
+#slots .slot.absent {
+    background-color: hsl(0, 0%, 75%);
+}
