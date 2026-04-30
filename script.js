@@ -84,6 +84,10 @@ function submitGuess() {
             }
         }
 
+        for (let i = 0; i < keys.length; i ++) {
+            keys[i].classList.remove("correct", "present", "absent");
+        }
+
         currentRow = 0;
         currentCol = 0;
         currentGuess ="";
@@ -93,24 +97,39 @@ function submitGuess() {
         let answerLetters = answer.split("");
 
         for (let i = 0; i < currentGuess.length; i++) {
+            let element = document.querySelector(`#${currentGuess[i]}`);
+
             if (currentGuess[i] === answer[i]) {
                 rows[currentRow].children[i].classList.add("correct");
+                element.classList.remove("present", "absent");
+                element.classList.add("correct");
                 answerLetters[i] = null;
             }
         }
 
         for (let i = 0; i < currentGuess.length; i++) {
+            let element = document.querySelector(`#${currentGuess[i]}`);
+
             if (currentGuess[i] === answer[i]) {
                 continue;
             }
 
             if (answerLetters.includes(currentGuess[i])) {
                 rows[currentRow].children[i].classList.add("present");
+                
+                if (!element.classList.contains("correct")) {
+                    element.classList.remove("absent");
+                    element.classList.add("present");
+                }
 
                 let index = answerLetters.indexOf(currentGuess[i]);
                 answerLetters[index] = null;
             } else {
                 rows[currentRow].children[i].classList.add("absent");
+                
+                if (!element.classList.contains("correct") && !element.classList.contains("present")) {
+                    element.classList.add("absent");
+                }
             }
         }
 
@@ -127,9 +146,7 @@ function submitGuess() {
         }
         currentCol = 0;
         currentGuess = "";
-    } else if (currentGuess.length > 0 && currentGuess.length < 5) {
-        status.textContent = "Word is too short.";
     } else {
-        status.textContent = "Enter a word."
+        status.textContent = "Not enough letters.";
     }
 }
