@@ -24,13 +24,37 @@ keys.forEach(key => {
 
 document.addEventListener("keydown", event => {
     const key = event.key;
+    let button;
 
     if (key === "Enter") {
+        button = document.getElementById("enter-key");
+        button.classList.add("active");
         submitGuess();
     } else if (key === "Backspace" || key === "Delete") {
+        button = document.getElementById("delete-key");
+        button.classList.add("active");
         deleteLetter();
-    } else if (/^[a-zA-z]$/.test(key)) {
+    } else if (/^[a-zA-Z]$/.test(key)) {
+        button = document.getElementById(key.toUpperCase());
+        button.classList.add("active");
         addLetter(key.toUpperCase());
+    }
+});
+
+document.addEventListener("keyup", event => {
+    const key = event.key;
+    let button;
+
+    if (key === "Enter") {
+        button = document.getElementById("enter-key");
+    } else if (key === "Backspace" || key === "Delete") {
+        button = document.getElementById("delete-key");
+    } else if (/^[a-zA-Z]$/.test(key)) {
+        button = document.getElementById(key.toUpperCase());
+    }
+
+    if (button) {
+        button.classList.remove("active");
     }
 });
 
