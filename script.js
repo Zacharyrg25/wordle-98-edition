@@ -1,7 +1,7 @@
 let currentRow = 0;
 let currentCol = 0;
 let currentGuess = "";
-let answer = "PLANT";
+let answer = WORDS[Math.floor(Math.random() * WORDS.length)].toUpperCase();
 let running = true;
 
 const rows = document.querySelectorAll("#slots .row");
@@ -91,10 +91,16 @@ function submitGuess() {
         currentRow = 0;
         currentCol = 0;
         currentGuess ="";
+        answer = WORDS[Math.floor(Math.random() * WORDS.length)].toUpperCase();
         running = true;
         return;
     } else if (currentGuess.length == 5) {
         let answerLetters = answer.split("");
+
+        if (!WORDS.includes(currentGuess.toLowerCase())) {
+            status.textContent = "Word not in list.";
+            return;
+        }
 
         for (let i = 0; i < currentGuess.length; i++) {
             let element = document.querySelector(`#${currentGuess[i]}`);
