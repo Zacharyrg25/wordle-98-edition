@@ -90,15 +90,30 @@ function submitGuess() {
         running = true;
         return;
     } else if (currentGuess.length == 5) {
+        let answerLetters = answer.split("");
+
         for (let i = 0; i < currentGuess.length; i++) {
             if (currentGuess[i] === answer[i]) {
                 rows[currentRow].children[i].classList.add("correct");
-            } else if (answer.includes(currentGuess[i])) {
+                answerLetters[i] = null;
+            }
+        }
+
+        for (let i = 0; i < currentGuess.length; i++) {
+            if (currentGuess[i] === answer[i]) {
+                continue;
+            }
+
+            if (answerLetters.includes(currentGuess[i])) {
                 rows[currentRow].children[i].classList.add("present");
+
+                let index = answerLetters.indexOf(currentGuess[i]);
+                answerLetters[index] = null;
             } else {
                 rows[currentRow].children[i].classList.add("absent");
             }
         }
+
         if (currentGuess === answer) {
             status.textContent = `You win! The word was ${answer}. "Enter" to play again.`;
             running = false;
