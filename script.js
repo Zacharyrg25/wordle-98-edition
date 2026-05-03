@@ -8,6 +8,92 @@ const rows = document.querySelectorAll("#slots .row");
 const keys = document.querySelectorAll(".key");
 const status = document.getElementById("status");
 
+// MODAL CODE ---
+
+const mainBar = document.getElementById("bar");
+
+setupModal("tr1", "modal1");
+setupModal("tr2", "modal2");
+
+function setupModal(openButtonId, modalId) {
+    const openBtn = document.getElementById(openButtonId);
+    const modal = document.getElementById(modalId);
+    const modalWindow = modal.querySelector(".modal-content");
+    const modalTitleBar = modal.querySelector(".modal-title-bar");
+    const closeBtn = modal.querySelector(".close-btn");
+
+    openBtn.addEventListener("click", () => {
+        modal.classList.remove("hidden");
+        mainBar.classList.add("inactive");
+    });
+
+    closeBtn.addEventListener("click", () => {
+        modal.classList.add("hidden");
+
+        if (allModalsClosed()) {
+            mainBar.classList.remove("inactive");
+        }
+    });
+
+    modal.addEventListener("click", () => {
+        flashModal(modal);
+    });
+
+    modalWindow.addEventListener("click", event => {
+        event.stopPropagation();
+    });
+
+    let isDragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    modalTitleBar.addEventListener("mousedown", event => {
+        isDragging = true;
+
+        offsetX = event.clientX - modalWindow.offsetLeft;
+        offsetY = event.clientY - modalWindow.offsetTop;
+    });
+
+    document.addEventListener("mousemove", event => {
+        if (!isDragging) return;
+
+        modalWindow.style.left = `${event.clientX - offsetX}px`;
+        modalWindow.style.top = `${event.clientY - offsetY}px`;
+    });
+
+    document.addEventListener("mouseup", () => {
+        isDragging = false;
+    });
+}
+
+function allModalsClosed() {
+    return document.querySelectorAll(".modal:not(.hidden)").length === 0;
+}
+
+function getOpenModal() {
+    return document.querySelector(".modal:not(.hidden)");
+}
+
+function flashModal(modal) {
+    if (modal.dataset.flashing === "true") return;
+
+    modal.dataset.flashing = "true";
+    let flashes = 0;
+
+    const flashInterval = setInterval(() => {
+        modal.classList.toggle("flash");
+        flashes++;
+
+        if (flashes >= 6) {
+            clearInterval(flashInterval);
+            modal.classList.remove("flash");
+            modal.dataset.flashing = "false";
+        }
+    }, 100);
+}
+
+// ---
+
 keys.forEach(key => {
     key.addEventListener("click", () => {
         const value = key.textContent;
@@ -23,6 +109,14 @@ keys.forEach(key => {
 });
 
 document.addEventListener("keydown", event => {
+
+    const openModal = getOpenModal();
+
+    if (openModal) {
+        flashModal(openModal);
+        return;
+    }
+
     const key = event.key;
     let button;
 
@@ -42,6 +136,14 @@ document.addEventListener("keydown", event => {
 });
 
 document.addEventListener("keyup", event => {
+
+    const openModal = getOpenModal();
+
+    if (openModal) {
+        flashModal(openModal);
+        return;
+    }
+
     const key = event.key;
     let button;
 
