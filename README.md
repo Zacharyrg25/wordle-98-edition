@@ -1,11 +1,13 @@
 # Wordle 98
 
-A Windows 98-styled remake of the classic [Wordle](https://www.nytimes.com/games/wordle/index.html) word-guessing game — complete with draggable modal windows, bevelled borders, a gradient title bar, and a few extra twists.
+A faithful reimagining of the classic [New York Times Wordle](https://www.nytimes.com/games/wordle/index.html) wrapped in a pixel-perfect **Windows 98 aesthetic** — complete with draggable modal windows, inset/raised box-shadow buttons, and a retro title bar.
+
+> **Live demo:** _(add link here)_
 
 ---
 
-<!-- Replace the placeholder below with an actual screenshot once available -->
-> **📸 Screenshot placeholder** — add a screenshot of the game here.  
+## Screenshot
+
 > ![Wordle 98 gameplay screenshot](./assets/gameplay1.png)
 > ![Wordle 98 gameplay screenshot](./assets/gameplay2.png)
 
@@ -13,58 +15,26 @@ A Windows 98-styled remake of the classic [Wordle](https://www.nytimes.com/games
 
 ## Features
 
-- **Classic Wordle gameplay** — 6 attempts to guess the target word
-- **Variable word length** — choose between 4 and 8 letters using the slider (before your first guess)
-- **Real-time word validation** — only real English words are accepted as guesses
-- **Colour-coded feedback** — green (correct position), yellow (wrong position), grey (not in word)
-- **Keyboard tracking** — the on-screen keyboard updates to reflect your guesses; physical keyboard is fully supported
-- **Word definitions** — after each game, click the target word to see its definition and part of speech
-- **Draggable Windows 98 modals** — drag them around the screen just like the real thing
-- **Authentic Win98 aesthetic** — custom bitmap fonts, inset box-shadows, gradient title bars, and a slider that fights back
+- **Dynamic word length** — a range slider lets you switch between 4 and 8 letter words before a round begins
+- **Live word validation** — every guess is checked against a real dictionary API; only real words are accepted
+- **Colour-coded feedback** — correct position (green), wrong position (yellow), and absent (grey) hints after each guess, reflected on both the board and the on-screen keyboard
+- **Post-game definitions** — after each round, players can click the answer to look up its dictionary definition and part of speech
+- **Draggable Win98 modals** — help and joke dialogs can be repositioned by dragging their title bars, exactly like classic Windows windows
+- **Dual input support** — physical keyboard and on-screen keyboard both supported, with matching active-key visual feedback
+- **Responsive board** — board grid rebuilds automatically when word length changes
 
 ---
 
-## How to Play
+## Tech Stack
 
-1. Open `index.html` in your browser.
-2. *(Optional)* Adjust the **Letters** slider to pick a word length between 4 and 8.
-3. Type a word using your keyboard or the on-screen keys and press **Enter** to submit.
-4. Use the colour hints to narrow down the answer:
-   - 🟩 **Green** — correct letter, correct position
-   - 🟨 **Yellow** — correct letter, wrong position
-   - ⬜ **Grey** — letter is not in the word
-5. Guess the word within 6 tries to win!
-6. After the game ends, press **Enter** (or click the on-screen Enter key) to start a new game.
+| Layer      | Technology |
+|------------|------------|
+| Markup     | HTML5      |
+| Styling    | CSS3 (custom properties, `inset` box-shadow for Win98 chrome) |
+| Logic      | Vanilla JavaScript (ES2017+, `async/await`) |
+| Fonts      | Custom Windows 98 bitmap-style TrueType fonts |
 
----
-
-## Getting Started
-
-No build step or package manager needed — this is a plain HTML/CSS/JS project.
-
-```bash
-git clone https://github.com/your-username/wordle-98.git
-cd wordle-98
-# Open index.html in your browser, or serve it locally:
-npx serve .
-```
-
-> **Note:** The game fetches random words and validates guesses against live APIs (see [APIs](#apis)), so an internet connection is required during play.
-
----
-
-## Project Structure
-
-```
-wordle-98/
-├── index.html        # Main HTML — game board, keyboard, modals
-├── style.css         # All styles — Win98 aesthetic, layout, colour states
-├── script.js         # Game logic — state management, input handling, API calls
-├── words.js          # Word list (loaded before script.js)
-└── fonts/
-    ├── windows98regular.ttf
-    └── windows98bold.ttf
-```
+**No frameworks. No build tools. No dependencies.**
 
 ---
 
@@ -72,40 +42,77 @@ wordle-98/
 
 | API | Purpose |
 |-----|---------|
-| [random-word-api.herokuapp.com](https://random-word-api.herokuapp.com) | Fetches a random English word of the chosen length |
-| [api.dictionaryapi.dev](https://api.dictionaryapi.dev) | Validates guesses and retrieves definitions / parts of speech |
+| [Random Word API](https://random-word-api.herokuapp.com) | Fetches a random word of a specified length to use as the round's answer |
+| [Free Dictionary API](https://api.dictionaryapi.dev) | Validates player guesses and retrieves part-of-speech + definition for the post-game reveal |
 
-Both APIs are free and require no authentication.
-
----
-
-## Screenshots
-
-<!-- Add screenshots in a `screenshots/` folder and update the paths below -->
-
-| Game in progress | Win screen | Definition modal |
-|:---:|:---:|:---:|
-| *(screenshot placeholder)* | *(screenshot placeholder)* | *(screenshot placeholder)* |
+Both APIs are free and require no API key.
 
 ---
 
-## Known Limitations
+## How to Play
 
-- The word-length slider is locked after the first guess of a round — change it before you start typing.
-- Dictionary coverage depends on the third-party APIs; very obscure words may occasionally fail validation.
-- Drag-to-move on modals uses mouse events only — touch/mobile drag is not yet supported.
-- The **X** button in the title bar is intentionally non-functional (it's a joke — see the modal it opens).
+1. Open `index.html` in any modern browser — no server required
+2. Type a word using your keyboard or the on-screen buttons and press **Enter** to submit
+3. Use the colour hints to narrow down the answer in 6 tries
+4. After the round, click the answer word to see its definition
+5. Press **Enter** (or click **Enter** on-screen) to start a new game
 
 ---
 
-## Acknowledgements
+## Project Structure
 
-- Inspired by the original [Wordle](https://www.nytimes.com/games/wordle/index.html) by Josh Wardle.
-- Windows 98 bitmap fonts sourced from *(add font credit/link here)*.
-- Word data provided by [Free Dictionary API](https://dictionaryapi.dev/) and [Random Word API](https://random-word-api.herokuapp.com).
+```
+wordle-98/
+├── index.html        # App shell and DOM structure
+├── style.css         # All styling — Win98 chrome, game board, keyboard
+├── script.js         # Game logic, API calls, modal management
+├── words.js          # (reserved for a local word list)
+└── fonts/
+    ├── windows98regular.ttf
+    └── windows98bold.ttf
+```
+
+---
+
+## Local Setup
+
+No build step is needed. Clone or download the repository and open `index.html` directly in a browser:
+
+```bash
+git clone https://github.com/<your-username>/wordle-98.git
+cd wordle-98
+open index.html        # macOS
+# or
+start index.html       # Windows
+```
+
+> Because the app fetches from external APIs, a network connection is required for word selection and validation.
+
+---
+
+## Implementation Highlights
+
+### Two-pass duplicate-letter scoring
+Standard Wordle scoring handles duplicate letters with a two-pass algorithm: the first pass locks in exact matches and removes those letters from a working copy of the answer; the second pass scores remaining letters as present or absent. This ensures that a duplicated guessed letter is never counted more than the number of times it appears in the answer.
+
+### Async guess validation with concurrency guard
+Guess submission is gated by a `checkingGuess` boolean that prevents multiple simultaneous API requests if a player presses Enter repeatedly before the first response returns.
+
+### CSS custom properties for full theme control
+All colours, shadows, spacing, and sizes are defined as CSS variables in `:root`, making visual adjustments — or a full theme swap — a single-file change.
+
+---
+
+## Future Improvements
+
+- Hard mode (revealed hints must be used in subsequent guesses)
+- Win/loss streak statistics with `localStorage` persistence
+- Share result emoji grid (à la NYT Wordle)
+- Mobile touch drag support for modal windows
+- Offline word list to reduce API dependency
 
 ---
 
 ## License
 
-*(Add your chosen license here, e.g. MIT)*
+This project is for portfolio and educational purposes. The Windows 98 aesthetic is a tribute to Microsoft's classic UI design.
