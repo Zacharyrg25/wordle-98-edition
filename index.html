@@ -20,8 +20,8 @@
                 <button class="close-btn">X</button>
             </div>
 
-            <p>Wordle 98 is a remake of the popular New York Times' Wordle game, but designed with a retro Windows 98 aesthetic.</p>
-            <p>In this game, you get 6 tries to guess a target word. After each guess, the color of the tile will change to indicate how close your guess is to the target word.</p>
+            <p>Wordle 98 is a remake of the popular New York Times' Wordle game, but with a retro Windows 98 aesthetic and a couple extra additions.</p>
+            <p>In this game, you get 6 tries to guess a target word. After each guess, the color of the slots will change to indicate how close your guess is to the target word.</p>
             <p>Take the guess below for exapmle.</p>
             <div class="display-row">
                 <div class="display-slot correct">H</div>
@@ -30,67 +30,37 @@
                 <div class="display-slot absent">L</div>
                 <div class="display-slot absent">O</div>
             </div>
-            <p>H is in the correct spot, E is in the target word but in the wrong spot, and L and O are not in the target word at all.</p>
+            <p>H is in the correct slot, E is in the target word but is in the wrong slot, and L and O are not in the target word at all.</p>
         </div>
     </div>
 
     <div id="modal2" class="modal hidden">
-    <div class="modal-content">
-        <div class="modal-title-bar">
-            <h1>X</h1>
-            <button class="close-btn">X</button>
-        </div>
+        <div class="modal-content">
+            <div class="modal-title-bar">
+                <h1>X</h1>
+                <button class="close-btn">X</button>
+            </div>
 
-        <p>This button does not actually close the window. I just wanted to stay consistent with the Windows 98 aesthetic.</p>
+            <p>This button does not actually close the window. I just wanted to stay consistent with the Windows 98 aesthetic.</p>
+        </div>
     </div>
-</div>
 
-    <section id="slots">
-        <div class="row">
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
+    <div id="modal3" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-title-bar">
+                <h1>Definition</h1>
+                <button class="close-btn">X</button>
+            </div>
+
+            <p id="target-word"></p>
+            <p id="definition"></p>
         </div>
-        <div class="row">
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-        </div>
-        <div class="row">
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-        </div>
-        <div class="row">
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-        </div>
-        <div class="row">
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-        </div>
-        <div class="row">
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-            <div class="slot"></div>
-        </div>
-    </section>
+    </div>
+
+    <section id="slots"></section>
 
     <p id="status"></p>
+    <p id="definition-question"></p>
 
     <section id="keyboard">
         <div class="row">
@@ -127,6 +97,13 @@
             <button id="M" class="key">M</button>
             <button id="delete-key" class="key">Delete</button>
         </div>
+    </section>
+
+    <section id="letter-control">
+        <label for="Letters">Letters:</label>
+        <span>4</span>
+        <input type="range" id="Letters" name="Letters" min="4" max="8" value="5">
+        <span>8</span>
     </section>
 
     <script src="words.js"></script>

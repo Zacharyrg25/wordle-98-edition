@@ -1,12 +1,142 @@
 let currentRow = 0;
 let currentCol = 0;
 let currentGuess = "";
-let answer = WORDS[Math.floor(Math.random() * WORDS.length)].toUpperCase();
+let letterCount = 5;
+let answer = "";
 let running = true;
 
-const rows = document.querySelectorAll("#slots .row");
+const slots = document.getElementById("slots");
 const keys = document.querySelectorAll(".key");
 const status = document.getElementById("status");
+const letterSlider = document.getElementById("Letters");
+
+const definitionQuestion = document.getElementById("definition-question");
+const modal3 = document.getElementById("modal3");
+const targetWord = document.getElementById("target-word");
+const definition = document.getElementById("definition");
+
+let rows;
+
+startNewGame();
+
+// NEW
+
+async function getDefinition(word) {
+    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+
+    if (!response.ok) {
+        return "Definition not found.";
+    }
+
+    const data = await response.json();
+
+    return data[0].meanings[0].definitions[0].definition;
+}
+
+function showDefinitionQuestion() {
+    definitionQuestion.innerHTML = `What does <span id="answer-link">${answer}</span> mean?`;
+
+    const answerLink = document.getElementById("answer-link");
+
+    answerLink.addEventListener("click", async () => {
+        modal3.classList.remove("hidden");
+        mainBar.classList.add("inactive");
+
+        targetWord.textContent = answer;
+        definition.textContent = `${answer} means...`;
+
+        const wordDefinition = await getDefinition(answer);
+        definition.textContent = wordDefinition;
+    });
+}
+
+let statusTimeout;
+
+function showStatus(message, duration = 2000) {
+    clearTimeout(statusTimeout);
+
+    status.textContent = message;
+
+    statusTimeout = setTimeout(() => {
+        status.textContent = "";
+    }, duration);
+}
+
+async function getRandomWord(length) {
+    while (true) {
+        const response = await fetch(`https://random-word-api.herokuapp.com/word?length=${length}`);
+        const data = await response.json();
+
+        const word = data[0].toUpperCase();
+
+        if (word.length === length) {
+            return word;
+        }
+    }
+}
+
+async function isValidWord(word) {
+    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+    return response.ok;
+}
+
+async function startNewGame() {
+    currentRow = 0;
+    currentCol = 0;
+    currentGuess = "";
+    running = true;
+
+    definitionQuestion.textContent = "";
+    targetWord.textContent = "";
+    definition.textContent = "";
+
+    status.textContent = `Picking a ${letterSlider.value}-letter word for you to guess...`;
+
+    buildBoard();
+
+    keys.forEach(key => {
+        key.classList.remove("correct", "present", "absent", "active");
+    });
+
+    letterSlider.disabled = false;
+
+    try {
+        answer = await getRandomWord(letterCount);
+        status.textContent = "";
+    } catch (error) {
+        status.textContent = "Could not pick a word. Try refreshing the page.";
+    }
+}
+
+function buildBoard() {
+    slots.innerHTML = "";
+
+    for (let i = 0; i < 6; i++) {
+        const row = document.createElement("div");
+        row.classList.add("row");
+
+        for (let j = 0; j < letterCount; j++) {
+            const slot = document.createElement("div");
+            slot.classList.add("slot");
+            row.appendChild(slot);
+        }
+
+        slots.appendChild(row);
+    }
+
+    rows = document.querySelectorAll("#slots .row");
+}
+
+// -
+
+letterSlider.addEventListener("input", async () => {
+    if (currentRow > 0 || currentCol > 0) return;
+
+    letterCount = Number(letterSlider.value);
+    await startNewGame();
+});
+
+//
 
 // MODAL CODE ---
 
@@ -14,18 +144,21 @@ const mainBar = document.getElementById("bar");
 
 setupModal("tr1", "modal1");
 setupModal("tr2", "modal2");
+setupModal(null, "modal3");
 
 function setupModal(openButtonId, modalId) {
-    const openBtn = document.getElementById(openButtonId);
+    const openBtn = openButtonId ? document.getElementById(openButtonId) : null;
     const modal = document.getElementById(modalId);
     const modalWindow = modal.querySelector(".modal-content");
     const modalTitleBar = modal.querySelector(".modal-title-bar");
     const closeBtn = modal.querySelector(".close-btn");
 
-    openBtn.addEventListener("click", () => {
-        modal.classList.remove("hidden");
-        mainBar.classList.add("inactive");
-    });
+    if (openBtn) {
+        openBtn.addEventListener("click", () => {
+            modal.classList.remove("hidden");
+            mainBar.classList.add("inactive");
+        });
+    }
 
     closeBtn.addEventListener("click", () => {
         modal.classList.add("hidden");
@@ -161,7 +294,7 @@ document.addEventListener("keyup", event => {
 });
 
 function addLetter(letter) {
-    if (currentCol < 5 && running) {
+    if (currentCol < letterCount && running) {
         rows[currentRow].children[currentCol].textContent = letter;
         currentGuess += letter;
         currentCol++;
@@ -176,33 +309,23 @@ function deleteLetter() {
     }
 }
 
-function submitGuess() {
+async function submitGuess() {
     status.textContent = "";
     if (!running) {
-        for (let i = 0; i < rows.length; i++) {
-            for (let j = 0; j < rows[i].children.length; j++) {
-                rows[i].children[j].classList.remove("correct", "present", "absent");
-                rows[i].children[j].textContent = "";
-            }
-        }
-
-        for (let i = 0; i < keys.length; i ++) {
-            keys[i].classList.remove("correct", "present", "absent");
-        }
-
-        currentRow = 0;
-        currentCol = 0;
-        currentGuess ="";
-        answer = WORDS[Math.floor(Math.random() * WORDS.length)].toUpperCase();
-        running = true;
+        await startNewGame();
         return;
-    } else if (currentGuess.length == 5) {
+    } else if (currentGuess.length === letterCount) {
         let answerLetters = answer.split("");
 
-        if (!WORDS.includes(currentGuess.toLowerCase())) {
-            status.textContent = "Word not in list.";
+        const valid = await isValidWord(currentGuess);
+
+        if (!valid) {
+            showStatus("Word not valid.");
             return;
         }
+
+        status.textContent = "";
+        letterSlider.disabled = true;
 
         for (let i = 0; i < currentGuess.length; i++) {
             let element = document.querySelector(`#${currentGuess[i]}`);
@@ -242,19 +365,21 @@ function submitGuess() {
         }
 
         if (currentGuess === answer) {
-            status.textContent = `You win! The word was ${answer}. "Enter" to play again.`;
+            status.textContent = `You win! The word was ${answer}. Enter to play again.`;
+            showDefinitionQuestion();
             running = false;
             return;
         }
         currentRow++;
         if (currentRow == 6) {
-            status.textContent = `You lose! The word was ${answer}. "Enter" to play again.`;
+            status.textContent = `You lose! The word was ${answer}. Enter to play again.`;
+            showDefinitionQuestion();
             running = false;
             return;
         }
         currentCol = 0;
         currentGuess = "";
     } else {
-        status.textContent = "Not enough letters.";
+        showStatus("Not enough letters.");
     }
 }

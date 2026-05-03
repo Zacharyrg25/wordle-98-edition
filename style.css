@@ -178,9 +178,14 @@ body {
     align-items: center;
 }
 
-#status {
+#status, #definition-question {
     margin-top: 10px;
     text-align: center;
+}
+
+#answer-link {
+    text-decoration: underline;
+    cursor: pointer;
 }
 
 #keyboard {
@@ -332,3 +337,51 @@ body {
 .inactive {
     background: linear-gradient(90deg,hsl(0, 0%, 50%),hsl(0, 0%, 71%)) !important;
 }
+
+/* SLIDER */
+
+#letter-control {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    width: 150px;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    background-color: #c0c0c0;
+    box-shadow:
+        inset -1px -1px #fff,
+        inset 1px 1px #0a0a0a,
+        inset -2px -2px #dfdfdf,
+        inset 2px 2px #808080;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 11px;
+    height: 22px;
+    background-color: #c0c0c0;
+    margin-top: -8px;
+    box-shadow:
+        inset -1px -1px #0a0a0a,
+        inset 1px 1px #fff,
+        inset -2px -2px #808080,
+        inset 2px 2px #dfdfdf;
+    cursor: pointer;
+}
+
+input[type="range"]:disabled::-webkit-slider-thumb {
+    cursor: not-allowed;
+    background-color: #808080;
+}
+
+/* */
