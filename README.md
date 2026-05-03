@@ -6,8 +6,8 @@ A Windows 98-styled remake of the classic [Wordle](https://www.nytimes.com/games
 
 <!-- Replace the placeholder below with an actual screenshot once available -->
 > **📸 Screenshot placeholder** — add a screenshot of the game here.  
-> `![Wordle 98 gameplay screenshot](./assets/gameplay1.png)`
-> `![Wordle 98 gameplay screenshot](./assets/gameplay2.png)`
+> ![Wordle 98 gameplay screenshot](./assets/gameplay1.png)
+> ![Wordle 98 gameplay screenshot](./assets/gameplay2.png)
 
 ---
 
