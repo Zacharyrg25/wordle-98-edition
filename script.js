@@ -21,16 +21,35 @@ startNewGame();
 
 // NEW
 
-async function getDefinition(word) {
+async function getDefinitionInfo(word) {
     const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
 
     if (!response.ok) {
-        return "Definition not found.";
+        return {
+            partOfSpeech: "unknown",
+            definition: "Definition not found."
+        };
     }
 
     const data = await response.json();
 
-    return data[0].meanings[0].definitions[0].definition;
+    const partOfSpeech = data[0].meanings[0].partOfSpeech;
+    const wordDefinition = data[0].meanings[0].definitions[0].definition;
+
+    return {
+        partOfSpeech: partOfSpeech,
+        definition: wordDefinition
+    };
+}
+
+function getArticle(word) {
+    const firstLetter = word[0].toLowerCase();
+
+    if ("aeiou".includes(firstLetter)) {
+        return "an";
+    } else {
+        return "a";
+    }
 }
 
 function showDefinitionQuestion() {
@@ -45,8 +64,11 @@ function showDefinitionQuestion() {
         targetWord.textContent = answer;
         definition.textContent = `${answer} means...`;
 
-        const wordDefinition = await getDefinition(answer);
-        definition.textContent = wordDefinition;
+        const definitionInfo = await getDefinitionInfo(answer);
+        const article = getArticle(definitionInfo.partOfSpeech);
+
+        targetWord.textContent = `${answer} (Most commonly used as ${article} ${definitionInfo.partOfSpeech}.)`;
+        definition.textContent = definitionInfo.definition;
     });
 }
 
