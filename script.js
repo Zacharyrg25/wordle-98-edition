@@ -5,6 +5,8 @@ let letterCount = 5;
 let answer = "";
 let running = true;
 
+let checkingGuess = false;
+
 const slots = document.getElementById("slots");
 const keys = document.querySelectorAll(".key");
 const status = document.getElementById("status");
@@ -65,9 +67,13 @@ function showDefinitionQuestion() {
         definition.textContent = `${answer} means...`;
 
         const definitionInfo = await getDefinitionInfo(answer);
-        const article = getArticle(definitionInfo.partOfSpeech);
+        if (definitionInfo.partOfSpeech === "unknown") {
+            targetWord.textContent = `${answer} (Most common use not found.)`;
+        } else {
+            const article = getArticle(definitionInfo.partOfSpeech);
 
-        targetWord.textContent = `${answer} (Most commonly used as ${article} ${definitionInfo.partOfSpeech}.)`;
+            targetWord.textContent = `${answer} (Most commonly used as ${article} ${definitionInfo.partOfSpeech}.)`;
+        }
         definition.textContent = definitionInfo.definition;
     });
 }
@@ -85,16 +91,18 @@ function showStatus(message, duration = 2000) {
 }
 
 async function getRandomWord(length) {
-    while (true) {
+    for (let i = 0; i < 50; i++) {
         const response = await fetch(`https://random-word-api.herokuapp.com/word?length=${length}`);
         const data = await response.json();
 
         const word = data[0].toUpperCase();
 
-        if (word.length === length) {
+        if (word.length === length && await isValidWord(word)) {
             return word;
         }
     }
+
+    throw new Error("Could not find a valid answer word.");
 }
 
 async function isValidWord(word) {
@@ -332,76 +340,97 @@ function deleteLetter() {
 }
 
 async function submitGuess() {
+    if (checkingGuess) return;
+
     status.textContent = "";
+
     if (!running) {
         await startNewGame();
         return;
-    } else if (currentGuess.length === letterCount) {
-        let answerLetters = answer.split("");
-
-        const valid = await isValidWord(currentGuess);
-
-        if (!valid) {
-            showStatus("Word not valid.");
-            return;
-        }
-
-        status.textContent = "";
-        letterSlider.disabled = true;
-
-        for (let i = 0; i < currentGuess.length; i++) {
-            let element = document.querySelector(`#${currentGuess[i]}`);
-
-            if (currentGuess[i] === answer[i]) {
-                rows[currentRow].children[i].classList.add("correct");
-                element.classList.remove("present", "absent");
-                element.classList.add("correct");
-                answerLetters[i] = null;
-            }
-        }
-
-        for (let i = 0; i < currentGuess.length; i++) {
-            let element = document.querySelector(`#${currentGuess[i]}`);
-
-            if (currentGuess[i] === answer[i]) {
-                continue;
-            }
-
-            if (answerLetters.includes(currentGuess[i])) {
-                rows[currentRow].children[i].classList.add("present");
-                
-                if (!element.classList.contains("correct")) {
-                    element.classList.remove("absent");
-                    element.classList.add("present");
-                }
-
-                let index = answerLetters.indexOf(currentGuess[i]);
-                answerLetters[index] = null;
-            } else {
-                rows[currentRow].children[i].classList.add("absent");
-                
-                if (!element.classList.contains("correct") && !element.classList.contains("present")) {
-                    element.classList.add("absent");
-                }
-            }
-        }
-
-        if (currentGuess === answer) {
-            status.textContent = `You win! The word was ${answer}. Enter to play again.`;
-            showDefinitionQuestion();
-            running = false;
-            return;
-        }
-        currentRow++;
-        if (currentRow == 6) {
-            status.textContent = `You lose! The word was ${answer}. Enter to play again.`;
-            showDefinitionQuestion();
-            running = false;
-            return;
-        }
-        currentCol = 0;
-        currentGuess = "";
-    } else {
-        showStatus("Not enough letters.");
     }
+
+    if (currentGuess.length !== letterCount) {
+        showStatus("Not enough letters.");
+        return;
+    }
+
+    checkingGuess = true;
+
+    const guess = currentGuess;
+    const valid = await isValidWord(guess);
+
+    if (!valid) {
+        checkingGuess = false;
+        showStatus("Word not valid.");
+        return;
+    }
+
+    letterSlider.disabled = true;
+
+    let answerLetters = answer.split("");
+
+    // First pass: mark correct letters
+    for (let i = 0; i < guess.length; i++) {
+        const slot = rows[currentRow].children[i];
+        const key = document.querySelector(`#${guess[i]}`);
+
+        if (guess[i] === answer[i]) {
+            slot.classList.add("correct");
+
+            key.classList.remove("present", "absent");
+            key.classList.add("correct");
+
+            answerLetters[i] = null;
+        }
+    }
+
+    // Second pass: mark present/absent letters
+    for (let i = 0; i < guess.length; i++) {
+        const slot = rows[currentRow].children[i];
+        const key = document.querySelector(`#${guess[i]}`);
+
+        if (guess[i] === answer[i]) {
+            continue;
+        }
+
+        if (answerLetters.includes(guess[i])) {
+            slot.classList.add("present");
+
+            if (!key.classList.contains("correct")) {
+                key.classList.remove("absent");
+                key.classList.add("present");
+            }
+
+            const index = answerLetters.indexOf(guess[i]);
+            answerLetters[index] = null;
+        } else {
+            slot.classList.add("absent");
+
+            if (!key.classList.contains("correct") && !key.classList.contains("present")) {
+                key.classList.add("absent");
+            }
+        }
+    }
+
+    if (guess === answer) {
+        status.textContent = `You win! The word was ${answer}. Enter to play again.`;
+        showDefinitionQuestion();
+        running = false;
+        checkingGuess = false;
+        return;
+    }
+
+    currentRow++;
+
+    if (currentRow === 6) {
+        status.textContent = `You lose! The word was ${answer}. Enter to play again.`;
+        showDefinitionQuestion();
+        running = false;
+        checkingGuess = false;
+        return;
+    }
+
+    currentCol = 0;
+    currentGuess = "";
+    checkingGuess = false;
 }
