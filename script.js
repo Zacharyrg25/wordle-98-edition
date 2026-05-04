@@ -1,30 +1,86 @@
+/**
+ * @fileoverview Wordle 98 — Game Logic
+ *
+ * Handles all game state, user input (keyboard and on-screen), word validation,
+ * modal management, and post-game definition lookup for Wordle 98.
+ *
+ * External dependencies (loaded via <script> tags before this file):
+ *   - words.js  : (reserved for a local word list if needed)
+ *
+ * External APIs used:
+ *   - https://random-word-api.herokuapp.com  : Fetches a random word of a given length
+ *   - https://api.dictionaryapi.dev          : Validates words and fetches definitions
+ */
+
+// ============================================================
+// GAME STATE
+// ============================================================
+
+/** @type {number} Index of the row currently being filled (0–5). */
 let currentRow = 0;
+
+/** @type {number} Index of the next empty column in the current row. */
 let currentCol = 0;
+
+/** @type {string} The letters the player has typed so far for the current row. */
 let currentGuess = "";
+
+/** @type {number} Number of letters in the target word (controlled by the slider). */
 let letterCount = 5;
+
+/** @type {string} The target word the player is trying to guess (all caps). */
 let answer = "";
+
+/** @type {boolean} Whether the game is actively accepting input. */
 let running = true;
 
+/**
+ * @type {boolean}
+ * Guards against submitting multiple guesses simultaneously while an async
+ * validation request is in flight.
+ */
 let checkingGuess = false;
 
-const slots = document.getElementById("slots");
-const keys = document.querySelectorAll(".key");
-const status = document.getElementById("status");
-const letterSlider = document.getElementById("Letters");
+// ============================================================
+// DOM REFERENCES
+// ============================================================
 
-const definitionQuestion = document.getElementById("definition-question");
-const modal3 = document.getElementById("modal3");
-const targetWord = document.getElementById("target-word");
-const definition = document.getElementById("definition");
+const gameBoard        = document.getElementById("game-board");
+const keys             = document.querySelectorAll(".key");
+const statusMessage    = document.getElementById("status-message");
+const letterSlider     = document.getElementById("letter-slider");
+const definitionPrompt = document.getElementById("definition-prompt");
+const definitionModal  = document.getElementById("definition-modal");
+const definitionWord   = document.getElementById("definition-word");
+const definitionText   = document.getElementById("definition-text");
 
-let rows;
+/** @type {NodeList} Live reference to all board rows; rebuilt on each new game. */
+let boardRows;
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
 
 startNewGame();
 
-// NEW
+// ============================================================
+// API HELPERS
+// ============================================================
 
+/**
+ * Fetches the part of speech and primary definition for a given word from the
+ * Free Dictionary API.
+ *
+ * @async
+ * @param {string} word - The word to look up (case-insensitive).
+ * @returns {Promise<{partOfSpeech: string, definition: string}>}
+ *   Resolves with the part of speech and definition, or fallback strings if
+ *   the word cannot be found.
+ */
 async function getDefinitionInfo(word) {
-    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+    const response = await fetch(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`
+    );
 
     if (!response.ok) {
         return {
@@ -34,67 +90,39 @@ async function getDefinitionInfo(word) {
     }
 
     const data = await response.json();
+    const partOfSpeech  = data[0].meanings[0].partOfSpeech;
+    const definition    = data[0].meanings[0].definitions[0].definition;
 
-    const partOfSpeech = data[0].meanings[0].partOfSpeech;
-    const wordDefinition = data[0].meanings[0].definitions[0].definition;
-
-    return {
-        partOfSpeech: partOfSpeech,
-        definition: wordDefinition
-    };
+    return { partOfSpeech, definition };
 }
 
+/**
+ * Returns the correct indefinite article ("a" or "an") for a given word,
+ * based on whether it starts with a vowel sound.
+ *
+ * @param {string} word - The word to evaluate.
+ * @returns {"a"|"an"}
+ */
 function getArticle(word) {
-    const firstLetter = word[0].toLowerCase();
-
-    if ("aeiou".includes(firstLetter)) {
-        return "an";
-    } else {
-        return "a";
-    }
+    return "aeiou".includes(word[0].toLowerCase()) ? "an" : "a";
 }
 
-function showDefinitionQuestion() {
-    definitionQuestion.innerHTML = `What does <span id="answer-link">${answer}</span> mean?`;
-
-    const answerLink = document.getElementById("answer-link");
-
-    answerLink.addEventListener("click", async () => {
-        modal3.classList.remove("hidden");
-        mainBar.classList.add("inactive");
-
-        targetWord.textContent = answer;
-        definition.textContent = `${answer} means...`;
-
-        const definitionInfo = await getDefinitionInfo(answer);
-        if (definitionInfo.partOfSpeech === "unknown") {
-            targetWord.textContent = `${answer} (Most common use not found.)`;
-        } else {
-            const article = getArticle(definitionInfo.partOfSpeech);
-
-            targetWord.textContent = `${answer} (Most commonly used as ${article} ${definitionInfo.partOfSpeech}.)`;
-        }
-        definition.textContent = definitionInfo.definition;
-    });
-}
-
-let statusTimeout;
-
-function showStatus(message, duration = 2000) {
-    clearTimeout(statusTimeout);
-
-    status.textContent = message;
-
-    statusTimeout = setTimeout(() => {
-        status.textContent = "";
-    }, duration);
-}
-
+/**
+ * Fetches a random, dictionary-valid word of the specified length.
+ * Retries up to 50 times in case the random API returns a word that is not in
+ * the dictionary or is the wrong length.
+ *
+ * @async
+ * @param {number} length - The desired word length.
+ * @returns {Promise<string>} Resolves with an all-caps valid word.
+ * @throws {Error} If no valid word is found after 50 attempts.
+ */
 async function getRandomWord(length) {
     for (let i = 0; i < 50; i++) {
-        const response = await fetch(`https://random-word-api.herokuapp.com/word?length=${length}`);
+        const response = await fetch(
+            `https://random-word-api.herokuapp.com/word?length=${length}`
+        );
         const data = await response.json();
-
         const word = data[0].toUpperCase();
 
         if (word.length === length && await isValidWord(word)) {
@@ -105,22 +133,43 @@ async function getRandomWord(length) {
     throw new Error("Could not find a valid answer word.");
 }
 
+/**
+ * Checks whether a word exists in the dictionary by querying the Free
+ * Dictionary API.
+ *
+ * @async
+ * @param {string} word - The word to validate (case-insensitive).
+ * @returns {Promise<boolean>} Resolves with `true` if the word is valid.
+ */
 async function isValidWord(word) {
-    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+    const response = await fetch(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`
+    );
     return response.ok;
 }
 
+// ============================================================
+// GAME SETUP
+// ============================================================
+
+/**
+ * Resets all game state and starts a new round. Rebuilds the board, clears
+ * keyboard colours, then fetches a new target word.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function startNewGame() {
-    currentRow = 0;
-    currentCol = 0;
+    currentRow   = 0;
+    currentCol   = 0;
     currentGuess = "";
-    running = true;
+    running      = true;
 
-    definitionQuestion.textContent = "";
-    targetWord.textContent = "";
-    definition.textContent = "";
+    definitionPrompt.textContent = "";
+    definitionWord.textContent   = "";
+    definitionText.textContent   = "";
 
-    status.textContent = `Picking a ${letterSlider.value}-letter word for you to guess...`;
+    statusMessage.textContent = `Picking a ${letterSlider.value}-letter word for you to guess...`;
 
     buildBoard();
 
@@ -132,14 +181,20 @@ async function startNewGame() {
 
     try {
         answer = await getRandomWord(letterCount);
-        status.textContent = "";
+        statusMessage.textContent = "";
     } catch (error) {
-        status.textContent = "Could not pick a word. Try refreshing the page.";
+        statusMessage.textContent = "Could not pick a word. Try refreshing the page.";
     }
 }
 
+/**
+ * Builds (or rebuilds) the 6×N grid of letter slots and updates the
+ * `boardRows` reference used throughout the game.
+ *
+ * @returns {void}
+ */
 function buildBoard() {
-    slots.innerHTML = "";
+    gameBoard.innerHTML = "";
 
     for (let i = 0; i < 6; i++) {
         const row = document.createElement("div");
@@ -151,14 +206,84 @@ function buildBoard() {
             row.appendChild(slot);
         }
 
-        slots.appendChild(row);
+        gameBoard.appendChild(row);
     }
 
-    rows = document.querySelectorAll("#slots .row");
+    boardRows = document.querySelectorAll("#game-board .row");
 }
 
-// -
+// ============================================================
+// STATUS MESSAGES
+// ============================================================
 
+/** @type {number|undefined} Timeout ID used to auto-clear the status message. */
+let statusTimeout;
+
+/**
+ * Displays a temporary status message to the player and clears it after a
+ * specified duration.
+ *
+ * @param {string} message  - The text to display.
+ * @param {number} [duration=2000] - How long (ms) to show the message.
+ * @returns {void}
+ */
+function showStatus(message, duration = 2000) {
+    clearTimeout(statusTimeout);
+    statusMessage.textContent = message;
+
+    statusTimeout = setTimeout(() => {
+        statusMessage.textContent = "";
+    }, duration);
+}
+
+// ============================================================
+// POST-GAME: DEFINITION PROMPT
+// ============================================================
+
+/**
+ * Renders a clickable prompt below the board that lets the player look up
+ * the definition of the answer word. Clicking the link opens the definition
+ * modal and fetches the definition asynchronously.
+ *
+ * @returns {void}
+ */
+function showDefinitionPrompt() {
+    definitionPrompt.innerHTML =
+        `What does <span id="answer-link">${answer}</span> mean?`;
+
+    const answerLink = document.getElementById("answer-link");
+
+    answerLink.addEventListener("click", async () => {
+        definitionModal.classList.remove("hidden");
+        titleBar.classList.add("inactive");
+
+        // Show placeholder text while the API request is in flight.
+        definitionWord.textContent = answer;
+        definitionText.textContent = `${answer} means...`;
+
+        const info = await getDefinitionInfo(answer);
+
+        if (info.partOfSpeech === "unknown") {
+            definitionWord.textContent = `${answer} (Most common use not found.)`;
+        } else {
+            const article = getArticle(info.partOfSpeech);
+            definitionWord.textContent =
+                `${answer} (Most commonly used as ${article} ${info.partOfSpeech}.)`;
+        }
+
+        definitionText.textContent = info.definition;
+    });
+}
+
+// ============================================================
+// LETTER SLIDER
+// ============================================================
+
+/**
+ * Listens for changes to the word-length slider. Only restarts the game if no
+ * letters have been typed yet (i.e. the board is completely empty), so that
+ * in-progress games are not accidentally reset.
+ */
 letterSlider.addEventListener("input", async () => {
     if (currentRow > 0 || currentCol > 0) return;
 
@@ -166,62 +291,70 @@ letterSlider.addEventListener("input", async () => {
     await startNewGame();
 });
 
-//
+// ============================================================
+// MODAL MANAGEMENT
+// ============================================================
 
-// MODAL CODE ---
+const titleBar = document.getElementById("title-bar");
 
-const mainBar = document.getElementById("bar");
+setupModal("help-btn",  "help-modal");
+setupModal("close-btn", "close-modal");
+setupModal(null,        "definition-modal");
 
-setupModal("tr1", "modal1");
-setupModal("tr2", "modal2");
-setupModal(null, "modal3");
-
+/**
+ * Wires up open/close behaviour and drag-to-move functionality for a modal
+ * window. Clicking outside the modal content panel triggers a flash animation
+ * (mimicking the Win98 "window not focused" shake).
+ *
+ * @param {string|null} openButtonId - ID of the button that opens the modal,
+ *   or `null` if the modal has no dedicated open button (e.g. opened
+ *   programmatically).
+ * @param {string} modalId - ID of the modal backdrop element.
+ * @returns {void}
+ */
 function setupModal(openButtonId, modalId) {
-    const openBtn = openButtonId ? document.getElementById(openButtonId) : null;
-    const modal = document.getElementById(modalId);
-    const modalWindow = modal.querySelector(".modal-content");
-    const modalTitleBar = modal.querySelector(".modal-title-bar");
-    const closeBtn = modal.querySelector(".close-btn");
+    const openBtn        = openButtonId ? document.getElementById(openButtonId) : null;
+    const modal          = document.getElementById(modalId);
+    const modalContent   = modal.querySelector(".modal-content");
+    const modalTitleBar  = modal.querySelector(".modal-title-bar");
+    const closeBtn       = modal.querySelector(".modal-close-btn");
 
+    // Open
     if (openBtn) {
         openBtn.addEventListener("click", () => {
             modal.classList.remove("hidden");
-            mainBar.classList.add("inactive");
+            titleBar.classList.add("inactive");
         });
     }
 
+    // Close
     closeBtn.addEventListener("click", () => {
         modal.classList.add("hidden");
 
         if (allModalsClosed()) {
-            mainBar.classList.remove("inactive");
+            titleBar.classList.remove("inactive");
         }
     });
 
-    modal.addEventListener("click", () => {
-        flashModal(modal);
-    });
+    // Flash when clicking the backdrop (outside the content panel)
+    modal.addEventListener("click", () => flashModal(modal));
+    modalContent.addEventListener("click", event => event.stopPropagation());
 
-    modalWindow.addEventListener("click", event => {
-        event.stopPropagation();
-    });
-
+    // Drag-to-move
     let isDragging = false;
-    let offsetX = 0;
-    let offsetY = 0;
+    let offsetX    = 0;
+    let offsetY    = 0;
 
     modalTitleBar.addEventListener("mousedown", event => {
         isDragging = true;
-
-        offsetX = event.clientX - modalWindow.offsetLeft;
-        offsetY = event.clientY - modalWindow.offsetTop;
+        offsetX = event.clientX - modalContent.offsetLeft;
+        offsetY = event.clientY - modalContent.offsetTop;
     });
 
     document.addEventListener("mousemove", event => {
         if (!isDragging) return;
-
-        modalWindow.style.left = `${event.clientX - offsetX}px`;
-        modalWindow.style.top = `${event.clientY - offsetY}px`;
+        modalContent.style.left = `${event.clientX - offsetX}px`;
+        modalContent.style.top  = `${event.clientY - offsetY}px`;
     });
 
     document.addEventListener("mouseup", () => {
@@ -229,14 +362,32 @@ function setupModal(openButtonId, modalId) {
     });
 }
 
+/**
+ * Returns `true` when every modal is hidden.
+ *
+ * @returns {boolean}
+ */
 function allModalsClosed() {
     return document.querySelectorAll(".modal:not(.hidden)").length === 0;
 }
 
+/**
+ * Returns the first currently-visible modal element, or `null` if none.
+ *
+ * @returns {Element|null}
+ */
 function getOpenModal() {
     return document.querySelector(".modal:not(.hidden)");
 }
 
+/**
+ * Briefly flashes a modal's outline to signal that it requires attention
+ * (Win98-style focus indication). Prevents concurrent flash animations on the
+ * same element via a `data-flashing` guard.
+ *
+ * @param {Element} modal - The modal backdrop element to flash.
+ * @returns {void}
+ */
 function flashModal(modal) {
     if (modal.dataset.flashing === "true") return;
 
@@ -255,7 +406,9 @@ function flashModal(modal) {
     }, 100);
 }
 
-// ---
+// ============================================================
+// INPUT HANDLING — ON-SCREEN KEYBOARD
+// ============================================================
 
 keys.forEach(key => {
     key.addEventListener("click", () => {
@@ -271,8 +424,17 @@ keys.forEach(key => {
     });
 });
 
-document.addEventListener("keydown", event => {
+// ============================================================
+// INPUT HANDLING — PHYSICAL KEYBOARD
+// ============================================================
 
+/**
+ * Handles keydown events. If a modal is open, flashes it instead of
+ * processing the keypress. Otherwise routes Enter, Backspace/Delete, and
+ * letter keys to the appropriate game functions and adds the `.active` class
+ * to the corresponding on-screen key for visual feedback.
+ */
+document.addEventListener("keydown", event => {
     const openModal = getOpenModal();
 
     if (openModal) {
@@ -298,8 +460,11 @@ document.addEventListener("keydown", event => {
     }
 });
 
+/**
+ * Removes the `.active` class from on-screen keys when the corresponding
+ * physical key is released. If a modal is open, flashes it instead.
+ */
 document.addEventListener("keyup", event => {
-
     const openModal = getOpenModal();
 
     if (openModal) {
@@ -323,27 +488,66 @@ document.addEventListener("keyup", event => {
     }
 });
 
+// ============================================================
+// GAME ACTIONS
+// ============================================================
+
+/**
+ * Adds a single letter to the current guess if the row is not yet full and
+ * the game is still running.
+ *
+ * @param {string} letter - The uppercase letter to add.
+ * @returns {void}
+ */
 function addLetter(letter) {
     if (currentCol < letterCount && running) {
-        rows[currentRow].children[currentCol].textContent = letter;
+        boardRows[currentRow].children[currentCol].textContent = letter;
         currentGuess += letter;
         currentCol++;
     }
 }
 
+/**
+ * Removes the last letter from the current guess, clearing both the state
+ * variable and the corresponding board slot.
+ *
+ * @returns {void}
+ */
 function deleteLetter() {
     if (currentCol > 0 && running) {
         currentCol--;
-        rows[currentRow].children[currentCol].textContent = "";
+        boardRows[currentRow].children[currentCol].textContent = "";
         currentGuess = currentGuess.slice(0, -1);
     }
 }
 
+/**
+ * Submits the current guess for evaluation.
+ *
+ * Validation steps (in order):
+ *   1. Bail out if another validation request is already in progress.
+ *   2. If the game is over, pressing Enter starts a new game instead.
+ *   3. Ensure the guess is the correct length.
+ *   4. Check the guess against the dictionary API.
+ *
+ * Scoring uses a two-pass algorithm to handle duplicate letters correctly:
+ *   - Pass 1: Mark exact matches (correct position) and null them out in a
+ *     working copy of the answer so they cannot be matched again.
+ *   - Pass 2: Mark letters that exist somewhere in the remaining answer
+ *     (present) or are not in the answer at all (absent).
+ *
+ * After scoring, checks for a win (guess === answer) or for the final row
+ * having been reached (loss).
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function submitGuess() {
     if (checkingGuess) return;
 
-    status.textContent = "";
+    statusMessage.textContent = "";
 
+    // Re-use Enter to restart once the game has ended.
     if (!running) {
         await startNewGame();
         return;
@@ -367,12 +571,13 @@ async function submitGuess() {
 
     letterSlider.disabled = true;
 
+    // Working copy so matched letters can be nulled out during pass 2.
     let answerLetters = answer.split("");
 
-    // First pass: mark correct letters
+    // --- Pass 1: correct (right letter, right position) ---
     for (let i = 0; i < guess.length; i++) {
-        const slot = rows[currentRow].children[i];
-        const key = document.querySelector(`#${guess[i]}`);
+        const slot = boardRows[currentRow].children[i];
+        const key  = document.querySelector(`#${guess[i]}`);
 
         if (guess[i] === answer[i]) {
             slot.classList.add("correct");
@@ -380,18 +585,16 @@ async function submitGuess() {
             key.classList.remove("present", "absent");
             key.classList.add("correct");
 
-            answerLetters[i] = null;
+            answerLetters[i] = null; // Consume this letter.
         }
     }
 
-    // Second pass: mark present/absent letters
+    // --- Pass 2: present (right letter, wrong position) or absent ---
     for (let i = 0; i < guess.length; i++) {
-        const slot = rows[currentRow].children[i];
-        const key = document.querySelector(`#${guess[i]}`);
+        const slot = boardRows[currentRow].children[i];
+        const key  = document.querySelector(`#${guess[i]}`);
 
-        if (guess[i] === answer[i]) {
-            continue;
-        }
+        if (guess[i] === answer[i]) continue; // Already handled in pass 1.
 
         if (answerLetters.includes(guess[i])) {
             slot.classList.add("present");
@@ -401,8 +604,8 @@ async function submitGuess() {
                 key.classList.add("present");
             }
 
-            const index = answerLetters.indexOf(guess[i]);
-            answerLetters[index] = null;
+            // Consume this letter so duplicate guesses are handled correctly.
+            answerLetters[answerLetters.indexOf(guess[i])] = null;
         } else {
             slot.classList.add("absent");
 
@@ -412,10 +615,12 @@ async function submitGuess() {
         }
     }
 
+    // --- Win / loss check ---
     if (guess === answer) {
-        status.textContent = `You win! The word was ${answer}. Enter to play again.`;
-        showDefinitionQuestion();
-        running = false;
+        statusMessage.textContent =
+            `You win! The word was ${answer}. Enter to play again.`;
+        showDefinitionPrompt();
+        running       = false;
         checkingGuess = false;
         return;
     }
@@ -423,14 +628,15 @@ async function submitGuess() {
     currentRow++;
 
     if (currentRow === 6) {
-        status.textContent = `You lose! The word was ${answer}. Enter to play again.`;
-        showDefinitionQuestion();
-        running = false;
+        statusMessage.textContent =
+            `You lose! The word was ${answer}. Enter to play again.`;
+        showDefinitionPrompt();
+        running       = false;
         checkingGuess = false;
         return;
     }
 
-    currentCol = 0;
+    currentCol   = 0;
     currentGuess = "";
     checkingGuess = false;
 }
