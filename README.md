@@ -2,8 +2,8 @@
 
 Worlde 98 is a remake of the popular [New York Times Wordle](https://www.nytimes.com/games/wordle/index.html) in a Windows 98 aesthetic and with a couple added features.
 
-> ![Wordle 98 gameplay screenshot](./assets/gameplay1.png)
-> ![Wordle 98 gameplay screenshot](./assets/gameplay2.png)
+![Wordle 98 gameplay screenshot](./assets/gameplay1.png)
+![Wordle 98 gameplay screenshot](./assets/gameplay2.png)
 
 ## Setup
 
