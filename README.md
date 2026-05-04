@@ -46,6 +46,6 @@ No frameworks. No build tools. No dependencies.
 | API | Purpose |
 |-----|---------|
 | [Random Word API](https://random-word-api.herokuapp.com) | Fetches a random word of a specified length to use as the round's answer |
-| [Free Dictionary API](https://api.dictionaryapi.dev) | Validates player guesses and retrieves part-of-speech + definition for the post-game reveal |
+| [Free Dictionary API](https://dictionaryapi.dev) | Validates player guesses and retrieves part-of-speech + definition for the post-game reveal |
 
 Both APIs are free and require no API key.
